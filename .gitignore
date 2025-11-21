@@ -1,0 +1,31 @@
+# General
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+.env
+
+# Environments
+.venv/
+venv/
+env/
+
+# IDEs
+.vscode/
+.idea/
+
+# uv / python packaging
+build/
+dist/
+*.egg-info/
+.uv/
+
+# AWS Lambda artifacts
+lambda_function.zip
+package/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
