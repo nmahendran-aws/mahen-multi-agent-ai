@@ -12,13 +12,14 @@ import argparse
 from pathlib import Path
 
 def run_command(cmd, cwd=None):
-    """Run a command and capture output."""
+    """Run a command and stream output."""
     print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+    # Remove capture_output=True to stream to stdout/stderr
+    result = subprocess.run(cmd, cwd=cwd, text=True)
     if result.returncode != 0:
-        print(f"Error: {result.stderr}")
+        print(f"Error: Command failed with exit code {result.returncode}")
         sys.exit(1)
-    return result.stdout
+    return ""  # No stdout to return when streaming
 
 def package_lambda():
     """Package the Lambda function with all dependencies."""
@@ -37,9 +38,10 @@ def package_lambda():
         
         # Export exact requirements from uv.lock (excluding the editable database package)
         print("Exporting requirements from uv.lock...")
-        requirements_result = run_command(
+        requirements_result = subprocess.check_output(
             ["uv", "export", "--no-hashes", "--no-emit-project"],
-            cwd=str(charter_dir)
+            cwd=str(charter_dir),
+            text=True
         )
 
         # Filter out packages that don't work in Lambda
@@ -57,13 +59,13 @@ def package_lambda():
         # Use Docker to install dependencies for Lambda's architecture
         docker_cmd = [
             "docker", "run", "--rm",
-            "--platform", "linux/amd64",
+            "--platform", "linux/arm64",
             "-v", f"{temp_path}:/build",
             "-v", f"{backend_dir}/database:/database",
             "--entrypoint", "/bin/bash",
-            "public.ecr.aws/lambda/python:3.12",
+            "public.ecr.aws/sam/build-python3.12",
             "-c",
-            """cd /build && pip install --target ./package -r requirements.txt && pip install --target ./package --no-deps /database"""
+            """cd /build && pip install -v --target ./package -r requirements.txt && pip install --target ./package --no-deps /database"""
         ]
         
         run_command(docker_cmd)
